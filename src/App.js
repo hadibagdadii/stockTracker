@@ -2,18 +2,21 @@ import React, { useState, useEffect } from 'react';
 import { TrendingUp, TrendingDown, RefreshCw, Search, Plus, BarChart3, List, Moon, Sun, PieChart } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart as RechartsPieChart, Cell, Pie } from 'recharts';
 
-const API_KEY = '97PPK92YCFP0THEZ';
+const API_KEY = process.env.REACT_APP_ALPHA_VANTAGE_API_KEY || 'demo';
 
 // Sample watchlist symbols
 const DEFAULT_SYMBOLS = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'META', 'NVDA', 'NFLX', 'UBER'];
 
-const App = () => {
+const StockDashboard = () => {
   const [currentPage, setCurrentPage] = useState('dashboard');
   const [stocks, setStocks] = useState([]);
   const [watchlist, setWatchlist] = useState(['AAPL', 'MSFT', 'TSLA', 'NVDA', 'META', 'NFLX']);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [showSearchResults, setShowSearchResults] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
   const [marketData, setMarketData] = useState({
     sp500: { price: 4185.47, change: 12.38, changePercent: 0.30 },
@@ -48,6 +51,145 @@ const App = () => {
   });
 
   const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#06B6D4'];
+
+  // Search for stocks using Alpha Vantage Symbol Search
+  const searchStocks = async (query) => {
+    if (query.length < 2) {
+      setSearchResults([]);
+      setShowSearchResults(false);
+      return;
+    }
+
+    setIsSearching(true);
+    try {
+      // For demo purposes, let's create a comprehensive mock search that includes many real stocks
+      const mockSearchResults = {
+        'JPM': [{ symbol: 'JPM', name: 'JPMorgan Chase & Co', type: 'Equity', region: 'United States', currency: 'USD' }],
+        'DIS': [{ symbol: 'DIS', name: 'The Walt Disney Company', type: 'Equity', region: 'United States', currency: 'USD' }],
+        'DISNEY': [{ symbol: 'DIS', name: 'The Walt Disney Company', type: 'Equity', region: 'United States', currency: 'USD' }],
+        'COCA': [{ symbol: 'KO', name: 'The Coca-Cola Company', type: 'Equity', region: 'United States', currency: 'USD' }],
+        'AMAZON': [{ symbol: 'AMZN', name: 'Amazon.com Inc', type: 'Equity', region: 'United States', currency: 'USD' }],
+        'MICROSOFT': [{ symbol: 'MSFT', name: 'Microsoft Corporation', type: 'Equity', region: 'United States', currency: 'USD' }],
+        'GOOGLE': [{ symbol: 'GOOGL', name: 'Alphabet Inc Class A', type: 'Equity', region: 'United States', currency: 'USD' }],
+        'WALMART': [{ symbol: 'WMT', name: 'Walmart Inc', type: 'Equity', region: 'United States', currency: 'USD' }],
+        'JOHNSON': [{ symbol: 'JNJ', name: 'Johnson & Johnson', type: 'Equity', region: 'United States', currency: 'USD' }],
+        'VISA': [{ symbol: 'V', name: 'Visa Inc Class A', type: 'Equity', region: 'United States', currency: 'USD' }],
+        'MASTERCARD': [{ symbol: 'MA', name: 'Mastercard Inc Class A', type: 'Equity', region: 'United States', currency: 'USD' }],
+        'BERKSHIRE': [{ symbol: 'BRK.B', name: 'Berkshire Hathaway Inc Class B', type: 'Equity', region: 'United States', currency: 'USD' }],
+        'PROCTER': [{ symbol: 'PG', name: 'Procter & Gamble Co', type: 'Equity', region: 'United States', currency: 'USD' }],
+        'EXXON': [{ symbol: 'XOM', name: 'Exxon Mobil Corporation', type: 'Equity', region: 'United States', currency: 'USD' }],
+        'INTEL': [{ symbol: 'INTC', name: 'Intel Corporation', type: 'Equity', region: 'United States', currency: 'USD' }],
+        'CISCO': [{ symbol: 'CSCO', name: 'Cisco Systems Inc', type: 'Equity', region: 'United States', currency: 'USD' }],
+        'PFIZER': [{ symbol: 'PFE', name: 'Pfizer Inc', type: 'Equity', region: 'United States', currency: 'USD' }],
+        'VERIZON': [{ symbol: 'VZ', name: 'Verizon Communications Inc', type: 'Equity', region: 'United States', currency: 'USD' }],
+        'NIKE': [{ symbol: 'NKE', name: 'Nike Inc Class B', type: 'Equity', region: 'United States', currency: 'USD' }],
+        'MCDONALD': [{ symbol: 'MCD', name: 'McDonald\'s Corporation', type: 'Equity', region: 'United States', currency: 'USD' }],
+        'STARBUCKS': [{ symbol: 'SBUX', name: 'Starbucks Corporation', type: 'Equity', region: 'United States', currency: 'USD' }],
+        'SPOTIFY': [{ symbol: 'SPOT', name: 'Spotify Technology S.A.', type: 'Equity', region: 'United States', currency: 'USD' }],
+        'ZOOM': [{ symbol: 'ZM', name: 'Zoom Video Communications Inc', type: 'Equity', region: 'United States', currency: 'USD' }],
+        'PAYPAL': [{ symbol: 'PYPL', name: 'PayPal Holdings Inc', type: 'Equity', region: 'United States', currency: 'USD' }],
+        'SHOPIFY': [{ symbol: 'SHOP', name: 'Shopify Inc Class A', type: 'Equity', region: 'Canada', currency: 'CAD' }],
+        'SQUARE': [{ symbol: 'SQ', name: 'Block Inc Class A', type: 'Equity', region: 'United States', currency: 'USD' }],
+        'TWITTER': [{ symbol: 'TWTR', name: 'Twitter Inc', type: 'Equity', region: 'United States', currency: 'USD' }],
+        'SALESFORCE': [{ symbol: 'CRM', name: 'Salesforce Inc', type: 'Equity', region: 'United States', currency: 'USD' }],
+        'ORACLE': [{ symbol: 'ORCL', name: 'Oracle Corporation', type: 'Equity', region: 'United States', currency: 'USD' }],
+        'IBM': [{ symbol: 'IBM', name: 'International Business Machines Corporation', type: 'Equity', region: 'United States', currency: 'USD' }],
+        'AMD': [{ symbol: 'AMD', name: 'Advanced Micro Devices Inc', type: 'Equity', region: 'United States', currency: 'USD' }],
+        'HOME': [{ symbol: 'HD', name: 'The Home Depot Inc', type: 'Equity', region: 'United States', currency: 'USD' }],
+        'LOWES': [{ symbol: 'LOW', name: 'Lowe\'s Companies Inc', type: 'Equity', region: 'United States', currency: 'USD' }],
+        'TARGET': [{ symbol: 'TGT', name: 'Target Corporation', type: 'Equity', region: 'United States', currency: 'USD' }],
+        'COSTCO': [{ symbol: 'COST', name: 'Costco Wholesale Corporation', type: 'Equity', region: 'United States', currency: 'USD' }]
+      };
+
+      // Find matching results
+      const upperQuery = query.toUpperCase();
+      let results = [];
+      
+      // Direct symbol match
+      if (mockSearchResults[upperQuery]) {
+        results = mockSearchResults[upperQuery];
+      } else {
+        // Search by partial matches
+        Object.entries(mockSearchResults).forEach(([key, stocks]) => {
+          if (key.includes(upperQuery) || stocks[0].symbol.includes(upperQuery) || stocks[0].name.toUpperCase().includes(upperQuery)) {
+            results.push(...stocks);
+          }
+        });
+      }
+      
+      // Remove duplicates
+      results = results.filter((stock, index, self) => 
+        index === self.findIndex(s => s.symbol === stock.symbol)
+      );
+      
+      setSearchResults(results.slice(0, 10)); // Limit to 10 results
+      setShowSearchResults(true);
+      
+      console.log('Search results for:', query, results); // Debug log
+      
+      // Uncomment below for real API call (may hit rate limits)
+      /*
+      const response = await fetch(`https://www.alphavantage.co/query?function=SYMBOL_SEARCH&keywords=${query}&apikey=${API_KEY}`);
+      const data = await response.json();
+      
+      if (data.bestMatches) {
+        const results = data.bestMatches.slice(0, 10).map(match => ({
+          symbol: match['1. symbol'],
+          name: match['2. name'],
+          type: match['3. type'],
+          region: match['4. region'],
+          currency: match['8. currency']
+        }));
+        setSearchResults(results);
+        setShowSearchResults(true);
+      } else {
+        setSearchResults([]);
+        setShowSearchResults(false);
+      }
+      */
+    } catch (err) {
+      console.error('Search error:', err);
+      setSearchResults([]);
+      setShowSearchResults(false);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  // Add a new stock to the dashboard
+  const addStockToDashboard = async (symbol, name) => {
+    setLoading(true);
+    try {
+      // Check if stock already exists
+      if (stocks.find(stock => stock.symbol === symbol)) {
+        setError(`${symbol} is already in your dashboard`);
+        setLoading(false);
+        return;
+      }
+
+      // For demo purposes, we'll create mock data for new stocks
+      // In production, you'd fetch real data from Alpha Vantage
+      const newStock = {
+        symbol: symbol,
+        name: name || `${symbol} Corp.`,
+        price: (Math.random() * 200 + 50).toFixed(2),
+        change: ((Math.random() - 0.5) * 10).toFixed(2),
+        changePercent: ((Math.random() - 0.5) * 5).toFixed(2),
+        volume: `${(Math.random() * 50 + 10).toFixed(1)}M`,
+        sector: 'Technology'
+      };
+
+      setStocks(prevStocks => [...prevStocks, newStock]);
+      setSearchTerm('');
+      setSearchResults([]);
+      setShowSearchResults(false);
+      setError('');
+    } catch (err) {
+      setError('Failed to add stock. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Fetch stock data using Alpha Vantage
   const fetchStockData = async (symbol) => {
@@ -136,6 +278,20 @@ const App = () => {
     loadStockData();
   }, []);
 
+  // Debounced search effect
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (searchTerm) {
+        searchStocks(searchTerm);
+      } else {
+        setSearchResults([]);
+        setShowSearchResults(false);
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
   const addToWatchlist = (symbol) => {
     if (!watchlist.includes(symbol)) {
       setWatchlist([...watchlist, symbol]);
@@ -146,10 +302,13 @@ const App = () => {
     setWatchlist(watchlist.filter(s => s !== symbol));
   };
 
-  const filteredStocks = stocks.filter(stock => 
-    stock.symbol.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    stock.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Show either filtered existing stocks OR search results
+  const displayStocks = showSearchResults && searchResults.length > 0 
+    ? [] // Don't show existing stocks when search results are displayed
+    : stocks.filter(stock => 
+        stock.symbol.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        stock.name.toLowerCase().includes(searchTerm.toLowerCase())
+      );
 
   const watchlistStocks = stocks.filter(stock => watchlist.includes(stock.symbol));
   const gainers = stocks.filter(stock => parseFloat(stock.changePercent) > 0).length;
@@ -332,7 +491,7 @@ const App = () => {
             <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} />
             <input
               type="text"
-              placeholder="Search stocks by symbol or company name..."
+              placeholder="Search any stock symbol (e.g., AAPL, TSLA)..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className={`pl-10 pr-4 py-2 w-80 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
@@ -341,12 +500,70 @@ const App = () => {
                   : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
               }`}
             />
+            {isSearching && (
+              <RefreshCw className={`absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 animate-spin ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} />
+            )}
+            
+            {/* Search Results Dropdown */}
+            {showSearchResults && searchResults.length > 0 && (
+              <div className={`absolute top-full left-0 right-0 mt-1 max-h-60 overflow-y-auto rounded-lg border shadow-lg z-50 ${
+                darkMode ? 'bg-gray-800 border-gray-600' : 'bg-white border-gray-300'
+              }`}>
+                <div className={`px-3 py-2 text-xs font-medium ${darkMode ? 'text-gray-400 bg-gray-700' : 'text-gray-500 bg-gray-50'} border-b ${darkMode ? 'border-gray-600' : 'border-gray-200'}`}>
+                  Found {searchResults.length} result{searchResults.length !== 1 ? 's' : ''} - Click to add to dashboard
+                </div>
+                {searchResults.map((result, index) => (
+                  <div
+                    key={`${result.symbol}-${index}`}
+                    onClick={() => addStockToDashboard(result.symbol, result.name)}
+                    className={`px-4 py-3 cursor-pointer border-b transition-colors ${
+                      darkMode 
+                        ? 'border-gray-600 hover:bg-gray-700' 
+                        : 'border-gray-200 hover:bg-gray-50'
+                    } ${index === searchResults.length - 1 ? 'border-b-0' : ''}`}
+                  >
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <p className={`font-semibold text-blue-600 ${darkMode ? 'text-blue-400' : ''}`}>
+                          {result.symbol}
+                        </p>
+                        <p className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                          {result.name.length > 50 ? `${result.name.substring(0, 50)}...` : result.name}
+                        </p>
+                        <p className={`text-xs ${darkMode ? 'text-gray-500' : 'text-gray-500'}`}>
+                          {result.type} • {result.region} • {result.currency}
+                        </p>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Plus className={`w-5 h-5 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`} />
+                        <span className={`text-xs ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>Click to add</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            
+            {/* No Results Message */}
+            {showSearchResults && searchResults.length === 0 && searchTerm.length > 2 && !isSearching && (
+              <div className={`absolute top-full left-0 right-0 mt-1 p-4 text-center rounded-lg border shadow-lg z-50 ${
+                darkMode ? 'bg-gray-800 border-gray-600 text-gray-400' : 'bg-white border-gray-300 text-gray-500'
+              }`}>
+                No stocks found for "{searchTerm}"
+              </div>
+            )}
           </div>
         </div>
 
         {error && (
-          <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+          <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg flex justify-between items-center">
             <p className="text-red-700">{error}</p>
+            <button 
+              onClick={() => setError('')}
+              className="text-red-500 hover:text-red-700"
+            >
+              ✕
+            </button>
           </div>
         )}
 
@@ -380,9 +597,17 @@ const App = () => {
                 </tr>
               </thead>
               <tbody className={darkMode ? 'bg-gray-800 divide-y divide-gray-700' : 'bg-white divide-y divide-gray-200'}>
-                {filteredStocks.map(stock => (
-                  <StockRow key={stock.symbol} stock={stock} />
-                ))}
+                {displayStocks.length === 0 && !showSearchResults ? (
+                  <tr>
+                    <td colSpan="6" className={`px-6 py-8 text-center ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                      {searchTerm ? `No stocks found matching "${searchTerm}". Try searching in the box above to find new stocks!` : 'No stocks available'}
+                    </td>
+                  </tr>
+                ) : (
+                  displayStocks.map(stock => (
+                    <StockRow key={stock.symbol} stock={stock} />
+                  ))
+                )}
               </tbody>
             </table>
           </div>
@@ -643,9 +868,7 @@ const App = () => {
               .map((stock, index) => (
                 <div key={stock.symbol} className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium ${
-                      'bg-red-100 text-red-800'
-                    }`}>
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium ${'bg-red-100 text-red-800'}`}>
                       {index + 1}
                     </div>
                     <div>
@@ -838,4 +1061,4 @@ const App = () => {
   );
 };
 
-export default App;
+export default StockDashboard;
